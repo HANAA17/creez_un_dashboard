@@ -32,5 +32,22 @@ Plateforme : iPhone (Expo / React Native), données locales (SQLite), usage pers
 - Le 31 tombe le dernier jour des mois plus courts, sans dérive.
 - Les échéances sont créées à l'ouverture de l'app ; identifiant déterministe, donc pas de doublon.
 
+## Catégories
+- Chaque catégorie a une couleur (palette de 8 teintes validées pour le daltonisme, plus un gris) et une icône (48 choix).
+- Création, modification, archivage et restauration depuis Plus › Catégories, ou à la volée dans le formulaire d'ajout.
+- Un nom ne peut pas être utilisé deux fois pour un même type. Une catégorie archivée garde ses transactions passées.
+- Une catégorie liée à un objectif d'épargne se renomme et se recolore, mais ne s'archive pas.
+
+## Planifications
+- Écran dédié (Plus › Planifications) : créer, modifier (montant, comptes, catégorie, note, date de fin), mettre en pause, supprimer.
+- Le type, le rythme et la date de début sont figés après création (supprimer puis recréer pour les changer).
+- Pause : plus aucune échéance créée. À la reprise, les échéances manquées sont ignorées (pas de rattrapage).
+- Une planification terminée (date de fin passée) reste visible dans « Terminées ».
+
+## Statistiques
+- Dépenses par catégorie (anneau + liste, 5 catégories maximum puis « Autres », hors épargne).
+- Revenus et dépenses sur 6 ou 12 mois, avec vue tableau.
+- Évolution du solde total à la fin de chaque mois.
+
 ## Code
 - `src/domain` : règles métier pures et testées (`npm test`).

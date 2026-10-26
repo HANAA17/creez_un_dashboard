@@ -1,18 +1,15 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { monthKey, monthSummary, type Transaction } from '../domain';
 import { useData } from '../state/DataContext';
-import { Button, Card, Empty, Money, Screen, Txt, rowStyle } from '../ui/components';
-import { dayLabel, monthLabel, shiftMonth } from '../ui/format';
-import { useTheme } from '../ui/theme';
+import { Card, Empty, Money, Screen, Txt, rowStyle } from '../ui/components';
+import { dayLabel } from '../ui/format';
+import { MonthNav } from '../ui/MonthNav';
+import { TransactionRow } from '../ui/TransactionRow';
 
 export function TransactionsScreen() {
   const { data, today, deleteTransaction } = useData();
-  const t = useTheme();
   const [month, setMonth] = useState(monthKey(today));
-
-  const accountName = (id: string) => data.accounts.find((a) => a.id === id)?.name ?? '?';
-  const category = (id: string) => data.categories.find((c) => c.id === id);
 
   const list = data.transactions.filter((tx) => monthKey(tx.date) === month);
   const days = [...new Set(list.map((tx) => tx.date))].sort().reverse();
@@ -24,24 +21,10 @@ export function TransactionsScreen() {
       { text: 'Supprimer', style: 'destructive', onPress: () => deleteTransaction(tx.id) },
     ]);
 
-  const describe = (tx: Transaction) => {
-    if (tx.type === 'transfer') return { title: 'Virement', sub: `${accountName(tx.fromAccountId)} → ${accountName(tx.toAccountId)}` };
-    const c = category(tx.categoryId);
-    const savings = c?.kind === 'savings';
-    return {
-      title: savings ? `${c?.name} · ${tx.type === 'expense' ? 'versement' : 'retrait'}` : (c?.name ?? '?'),
-      sub: [accountName(tx.accountId), tx.note].filter(Boolean).join(' · '),
-    };
-  };
-
   return (
     <Screen>
       <Card>
-        <View style={rowStyle}>
-          <Button title="‹" variant="ghost" onPress={() => setMonth(shiftMonth(month, -1))} />
-          <Txt bold>{monthLabel(month)}</Txt>
-          <Button title="›" variant="ghost" onPress={() => setMonth(shiftMonth(month, 1))} />
-        </View>
+        <MonthNav month={month} onChange={setMonth} />
         <View style={rowStyle}><Txt sub>Revenus</Txt><Money cents={s.income} signed /></View>
         <View style={rowStyle}><Txt sub>Dépenses</Txt><Money cents={-s.expenses} signed /></View>
       </Card>
@@ -53,21 +36,9 @@ export function TransactionsScreen() {
             {dayLabel(day)}{day > today ? ' · prévue' : ''}
           </Txt>
           <Card style={{ paddingVertical: 4, opacity: day > today ? 0.7 : 1 }}>
-            {list.filter((tx) => tx.date === day).map((tx, i) => {
-              const { title, sub } = describe(tx);
-              return (
-                <Pressable key={tx.id} onPress={() => confirmDelete(tx)}
-                  style={[rowStyle, i > 0 && { borderTopWidth: 0.5, borderTopColor: t.border }]}>
-                  <View style={{ flex: 1, paddingRight: 12 }}>
-                    <Txt>{title}</Txt>
-                    {!!sub && <Txt sub size={13}>{sub}</Txt>}
-                  </View>
-                  {tx.type === 'transfer'
-                    ? <Money cents={tx.amount} />
-                    : <Money cents={tx.type === 'income' ? tx.amount : -tx.amount} signed />}
-                </Pressable>
-              );
-            })}
+            {list.filter((tx) => tx.date === day).map((tx, i) => (
+              <TransactionRow key={tx.id} tx={tx} divider={i > 0} onPress={() => confirmDelete(tx)} />
+            ))}
           </Card>
         </View>
       ))}

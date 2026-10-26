@@ -26,3 +26,16 @@ export function dayLabel(iso: IsoDate): string {
 export function shortDate(iso: IsoDate): string {
   return isoToDate(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
 }
+
+/** "2026-10" -> "oct" */
+export function shortMonth(month: string): string {
+  return isoToDate(`${month}-01`).toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '');
+}
+
+/** « chaque mois », « tous les 2 mois »… */
+export function frequencyLabel(frequency: 'weekly' | 'monthly' | 'yearly', interval: number): string {
+  const one = { weekly: 'chaque semaine', monthly: 'chaque mois', yearly: 'chaque année' }[frequency];
+  if (interval <= 1) return one;
+  const unit = { weekly: 'semaines', monthly: 'mois', yearly: 'ans' }[frequency];
+  return `tous les ${interval} ${unit}`;
+}

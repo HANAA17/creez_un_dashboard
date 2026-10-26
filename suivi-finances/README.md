@@ -16,4 +16,5 @@ Les règles de gestion sont dans [REGLES.md](REGLES.md).
 - `src/domain` : règles métier pures (montants, soldes, budgets, objectifs, récurrences)
 - `src/db` : schéma SQLite et accès aux données
 - `src/state` : contexte React qui relie base de données et règles
-- `src/screens`, `src/ui` : écrans et composants
+- `src/screens`, `src/ui` : écrans, composants et graphiques (SVG)
+- Navigation : Accueil, Transactions, Statistiques, Budgets, Plus (Comptes, Épargne, Planifications, Catégories, Réglages)

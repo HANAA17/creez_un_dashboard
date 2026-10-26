@@ -26,6 +26,10 @@ export interface Category {
   kind: CategoryKind;
   parentId?: string | null;
   archived: boolean;
+  /** Nom d'icône (voir src/ui/icons.ts) ; une valeur par défaut est déduite si absent. */
+  icon?: string | null;
+  /** Clé de couleur de la palette (voir src/ui/palette.ts), ex. 'blue'. */
+  color?: string | null;
 }
 
 interface TransactionBase {
@@ -84,4 +88,6 @@ export interface RecurrenceRule {
   endDate?: IsoDate;
   /** Dernière échéance déjà transformée en transaction. */
   lastGenerated?: IsoDate;
+  /** En pause : aucune échéance n'est créée tant que la règle n'est pas reprise. */
+  paused?: boolean;
 }

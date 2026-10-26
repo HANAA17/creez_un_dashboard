@@ -4,8 +4,9 @@ import { Alert, Modal, View } from 'react-native';
 import { parseAmount, type Frequency } from '../domain';
 import { useData } from '../state/DataContext';
 import { useUi, type AddPreset } from '../ui/Ui';
-import { Button, Chip, ChipRow, Field, Screen, Txt, rowStyle } from '../ui/components';
+import { Button, Chip, ChipRow, Field, Screen, Segmented, Txt, rowStyle } from '../ui/components';
 import { dateToIso } from '../ui/format';
+import { CategoryChips } from './CategoryChips';
 
 type Kind = 'expense' | 'income' | 'transfer';
 const KINDS: Array<[Kind, string]> = [['expense', 'Dépense'], ['income', 'Revenu'], ['transfer', 'Virement']];
@@ -23,7 +24,7 @@ export function AddTransactionSheet() {
 }
 
 function Form({ preset, onClose }: { preset: AddPreset; onClose: () => void }) {
-  const { data, addTransaction, addCategory } = useData();
+  const { data, addTransaction } = useData();
   const accounts = data.accounts.filter((a) => !a.archived);
 
   const [kind, setKind] = useState<Kind>(preset.type ?? 'expense');
@@ -52,17 +53,10 @@ function Form({ preset, onClose }: { preset: AddPreset; onClose: () => void }) {
     if (c && c.kind !== 'savings' && c.kind !== k) setCategoryId('');
   };
 
-  const newCategory = () =>
-    Alert.prompt('Nouvelle catégorie', kind === 'income' ? 'Catégorie de revenu' : 'Catégorie de dépense', async (text) => {
-      if (!text?.trim()) return;
-      const c = await addCategory(text, kind === 'income' ? 'income' : 'expense');
-      setCategoryId(c.id);
-    });
-
   const save = async () => {
     const cents = parseAmount(amount);
     if (cents === null) return Alert.alert('Montant invalide', 'Exemple : 12,50 (maximum 2 décimales).');
-    if (!accountId) return Alert.alert('Compte manquant', "Crée d'abord un compte dans l'onglet Comptes.");
+    if (!accountId) return Alert.alert('Compte manquant', "Crée d'abord un compte dans Plus › Comptes.");
     if (kind === 'transfer' && !destId) return Alert.alert('Compte manquant', 'Choisis le compte de destination.');
     if (kind !== 'transfer' && !categoryId) return Alert.alert('Catégorie manquante', 'Choisis une catégorie.');
     setSaving(true);
@@ -75,7 +69,7 @@ function Form({ preset, onClose }: { preset: AddPreset; onClose: () => void }) {
       );
       onClose();
     } catch (e) {
-      Alert.alert('Impossible d\'enregistrer', e instanceof Error ? e.message : String(e));
+      Alert.alert("Impossible d'enregistrer", e instanceof Error ? e.message : String(e));
       setSaving(false);
     }
   };
@@ -84,7 +78,7 @@ function Form({ preset, onClose }: { preset: AddPreset; onClose: () => void }) {
     return (
       <Screen>
         <Txt bold size={20}>Aucun compte</Txt>
-        <Txt sub>Crée d'abord un compte dans l'onglet Comptes, puis reviens ajouter ta transaction.</Txt>
+        <Txt sub>Crée d'abord un compte dans Plus › Comptes, puis reviens ajouter ta transaction.</Txt>
         <Button title="Fermer" onPress={onClose} />
       </Screen>
     );
@@ -93,13 +87,11 @@ function Form({ preset, onClose }: { preset: AddPreset; onClose: () => void }) {
   return (
     <Screen>
       <View style={rowStyle}>
-        <Txt bold size={20}>{isSavings ? (kind === 'expense' ? 'Verser en épargne' : 'Retirer de l\'épargne') : 'Nouvelle transaction'}</Txt>
+        <Txt bold size={20}>{isSavings ? (kind === 'expense' ? 'Verser en épargne' : "Retirer de l'épargne") : 'Nouvelle transaction'}</Txt>
         <Button title="Annuler" variant="ghost" onPress={onClose} />
       </View>
 
-      <ChipRow>
-        {KINDS.map(([k, label]) => <Chip key={k} label={label} selected={kind === k} onPress={() => changeKind(k)} />)}
-      </ChipRow>
+      <Segmented options={KINDS} value={kind} onChange={changeKind} />
 
       <Field label="Montant (€)" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0,00" autoFocus />
 
@@ -120,12 +112,7 @@ function Form({ preset, onClose }: { preset: AddPreset; onClose: () => void }) {
       ) : (
         <>
           <Txt sub size={13} style={{ marginBottom: 6 }}>Catégorie</Txt>
-          <ChipRow>
-            {categories.map((c) => (
-              <Chip key={c.id} label={c.kind === 'savings' ? `${c.name} · épargne` : c.name} selected={categoryId === c.id} onPress={() => setCategoryId(c.id)} />
-            ))}
-            <Chip label="+ Nouvelle" onPress={newCategory} />
-          </ChipRow>
+          <CategoryChips categories={categories} kind={kind} selectedId={categoryId} onSelect={setCategoryId} />
         </>
       )}
 
@@ -140,6 +127,7 @@ function Form({ preset, onClose }: { preset: AddPreset; onClose: () => void }) {
       <ChipRow>
         {REPEATS.map(([f, label]) => <Chip key={label} label={label} selected={repeat === f} onPress={() => setRepeat(f)} />)}
       </ChipRow>
+      {repeat && <Txt sub size={13} style={{ marginBottom: 12 }}>Tu pourras modifier, mettre en pause ou arrêter cette répétition dans Plus › Planifications.</Txt>}
 
       <Button title={saving ? 'Enregistrement…' : 'Enregistrer'} onPress={save} disabled={saving} />
     </Screen>

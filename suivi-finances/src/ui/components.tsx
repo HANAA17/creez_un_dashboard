@@ -1,9 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import {
   Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type StyleProp, type TextInputProps, type TextStyle, type ViewStyle,
 } from 'react-native';
 import { formatAmount, type Cents } from '../domain';
+import { ICON_CHOICES, type IconName } from './icons';
+import { COLOR_KEYS, LABELS, useSeriesColors, type ColorKey } from './palette';
 import { useTheme } from './theme';
 
 export function Screen({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
@@ -95,17 +98,84 @@ export function Empty({ children }: { children: React.ReactNode }) {
   return <Txt sub style={{ textAlign: 'center', marginVertical: 24 }}>{children}</Txt>;
 }
 
+/** Pastille ronde colorée avec une icône : identifie visuellement une catégorie ou un compte. */
+export function IconBubble({ icon, color, size = 40 }: { icon: IconName; color: string; size?: number }) {
+  return (
+    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
+      <Ionicons name={icon} size={size * 0.52} color="#ffffff" />
+    </View>
+  );
+}
+
+/** Contrôle à segments (2 à 4 choix), plus lisible que des puces pour un choix exclusif. */
+export function Segmented<T extends string>({ options, value, onChange }: {
+  options: Array<[T, string]>; value: T; onChange: (v: T) => void;
+}) {
+  const t = useTheme();
+  return (
+    <View style={[styles.segmented, { backgroundColor: t.track }]}>
+      {options.map(([k, label]) => {
+        const on = k === value;
+        return (
+          <Pressable key={k} onPress={() => onChange(k)} accessibilityRole="button" accessibilityState={{ selected: on }}
+            style={[styles.segment, on && { backgroundColor: t.card }]}>
+            <Text style={{ color: on ? t.text : t.sub, fontWeight: on ? '600' : '400', fontSize: 14 }}>{label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export function ColorPicker({ value, onChange }: { value: ColorKey; onChange: (k: ColorKey) => void }) {
+  const colors = useSeriesColors();
+  const t = useTheme();
+  return (
+    <View style={styles.chipRow}>
+      {COLOR_KEYS.map((k) => (
+        <Pressable key={k} onPress={() => onChange(k)} accessibilityRole="button" accessibilityLabel={LABELS[k]}
+          accessibilityState={{ selected: value === k }}
+          style={[styles.swatch, { backgroundColor: colors[k], borderColor: value === k ? t.text : 'transparent' }]}>
+          {value === k && <Ionicons name="checkmark" size={18} color="#ffffff" />}
+        </Pressable>
+      ))}
+    </View>
+  );
+}
+
+export function IconPicker({ value, color, onChange }: { value: IconName; color: string; onChange: (i: IconName) => void }) {
+  const t = useTheme();
+  return (
+    <View style={styles.chipRow}>
+      {ICON_CHOICES.map((i) => {
+        const on = i === value;
+        return (
+          <Pressable key={i} onPress={() => onChange(i)} accessibilityRole="button" accessibilityLabel={i}
+            accessibilityState={{ selected: on }}
+            style={[styles.iconCell, { backgroundColor: on ? color : t.track }]}>
+            <Ionicons name={i} size={22} color={on ? '#ffffff' : t.sub} />
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export const rowStyle = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10 },
 }).row;
 
 const styles = StyleSheet.create({
-  screen: { padding: 16, paddingBottom: 48, gap: 12 },
-  card: { borderRadius: 14, borderWidth: StyleSheet.hairlineWidth, padding: 16 },
+  screen: { padding: 16, paddingBottom: 110, gap: 12 },
+  card: { borderRadius: 18, borderWidth: StyleSheet.hairlineWidth, padding: 16 },
   section: { marginTop: 8, marginLeft: 4, letterSpacing: 0.5 },
-  button: { paddingVertical: 12, paddingHorizontal: 16, borderRadius: 12, alignItems: 'center' },
+  button: { paddingVertical: 13, paddingHorizontal: 16, borderRadius: 14, alignItems: 'center' },
   chip: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 20, borderWidth: 1 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 14 },
   input: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 12, fontSize: 16 },
   track: { height: 8, borderRadius: 4, overflow: 'hidden', marginTop: 8 },
+  segmented: { flexDirection: 'row', borderRadius: 12, padding: 3, marginBottom: 14 },
+  segment: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 10 },
+  swatch: { width: 40, height: 40, borderRadius: 20, borderWidth: 2.5, alignItems: 'center', justifyContent: 'center' },
+  iconCell: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
 });

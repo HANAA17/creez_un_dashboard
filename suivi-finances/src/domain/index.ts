@@ -7,3 +7,4 @@ export * from './budgets';
 export * from './goals';
 export * from './stats';
 export * from './recurrence';
+export * from './charts';

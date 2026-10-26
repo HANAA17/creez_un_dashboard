@@ -3,34 +3,12 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as LocalAuthentication from 'expo-local-authentication';
 import * as Sharing from 'expo-sharing';
 import React from 'react';
-import { Alert, Modal, Switch, View } from 'react-native';
-import { formatAmount, type RecurrenceRule } from '../domain';
+import { Alert, Switch, View } from 'react-native';
 import { useData } from '../state/DataContext';
-import { useUi } from '../ui/Ui';
-import { Button, Card, Empty, Screen, SectionTitle, Txt, rowStyle } from '../ui/components';
-import { shortDate } from '../ui/format';
+import { Button, Card, Screen, SectionTitle, Txt, rowStyle } from '../ui/components';
 
-const FREQ = { weekly: 'chaque semaine', monthly: 'chaque mois', yearly: 'chaque année' } as const;
-
-export function SettingsSheet() {
-  const { settingsOpen, setSettingsOpen } = useUi();
-  return (
-    <Modal visible={settingsOpen} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setSettingsOpen(false)}>
-      {settingsOpen && <Settings onClose={() => setSettingsOpen(false)} />}
-    </Modal>
-  );
-}
-
-function Settings({ onClose }: { onClose: () => void }) {
-  const { data, lockEnabled, setLockEnabled, deleteRecurrence, exportBackup, importBackup } = useData();
-
-  const describe = (r: RecurrenceRule) => {
-    const t = r.template;
-    const label = t.type === 'transfer'
-      ? `Virement ${data.accounts.find((a) => a.id === t.fromAccountId)?.name ?? '?'} → ${data.accounts.find((a) => a.id === t.toAccountId)?.name ?? '?'}`
-      : (data.categories.find((c) => c.id === t.categoryId)?.name ?? '?');
-    return { label, sub: `${formatAmount(t.amount)} ${FREQ[r.frequency]} · depuis le ${shortDate(r.startDate)}` };
-  };
+export function SettingsScreen() {
+  const { lockEnabled, setLockEnabled, exportBackup, importBackup } = useData();
 
   const toggleLock = async (on: boolean) => {
     if (on) {
@@ -43,12 +21,6 @@ function Settings({ onClose }: { onClose: () => void }) {
     }
     await setLockEnabled(on);
   };
-
-  const confirmDeleteRule = (r: RecurrenceRule) =>
-    Alert.alert('Arrêter cette planification ?', 'Les transactions déjà créées sont conservées.', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Arrêter', style: 'destructive', onPress: () => deleteRecurrence(r.id) },
-    ]);
 
   const doExport = async () => {
     try {
@@ -84,11 +56,6 @@ function Settings({ onClose }: { onClose: () => void }) {
 
   return (
     <Screen>
-      <View style={rowStyle}>
-        <Txt bold size={20}>Réglages</Txt>
-        <Button title="Fermer" variant="ghost" onPress={onClose} />
-      </View>
-
       <SectionTitle>Sécurité</SectionTitle>
       <Card>
         <View style={rowStyle}>
@@ -99,24 +66,6 @@ function Settings({ onClose }: { onClose: () => void }) {
           <Switch value={lockEnabled} onValueChange={toggleLock} />
         </View>
       </Card>
-
-      <SectionTitle>Planifications</SectionTitle>
-      {data.recurrences.length === 0 ? <Empty>Aucune transaction répétée.</Empty> : (
-        <Card style={{ paddingVertical: 4 }}>
-          {data.recurrences.map((r) => {
-            const { label, sub } = describe(r);
-            return (
-              <View key={r.id} style={rowStyle}>
-                <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Txt>{label}</Txt>
-                  <Txt sub size={13}>{sub}</Txt>
-                </View>
-                <Button title="Arrêter" variant="danger" onPress={() => confirmDeleteRule(r)} />
-              </View>
-            );
-          })}
-        </Card>
-      )}
 
       <SectionTitle>Sauvegarde</SectionTitle>
       <Card>

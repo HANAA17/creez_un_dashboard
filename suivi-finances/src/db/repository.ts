@@ -21,6 +21,7 @@ export async function loadAll(db: SQLiteDatabase): Promise<Data> {
     })),
     categories: categories.map((r): Category => ({
       id: r.id, name: r.name, kind: r.kind, parentId: r.parent_id, archived: !!r.archived,
+      icon: r.icon ?? null, color: r.color ?? null,
     })),
     transactions: txs.map((r): Transaction => {
       const base = { id: r.id, amount: r.amount, date: r.date, note: r.note ?? undefined, recurrenceId: r.recurrence_id ?? undefined };
@@ -35,6 +36,7 @@ export async function loadAll(db: SQLiteDatabase): Promise<Data> {
     recurrences: recs.map((r): RecurrenceRule => ({
       id: r.id, template: JSON.parse(r.template) as TransactionTemplate, frequency: r.frequency,
       interval: r.interval, startDate: r.start_date, endDate: r.end_date ?? undefined, lastGenerated: r.last_generated ?? undefined,
+      paused: !!r.paused,
     })),
   };
 }
@@ -47,8 +49,12 @@ export const setAccountArchived = (db: SQLiteDatabase, id: string, archived: boo
   db.runAsync('UPDATE accounts SET archived = ? WHERE id = ?', [archived ? 1 : 0, id]);
 
 export const insertCategory = (db: SQLiteDatabase, c: Category) =>
-  db.runAsync('INSERT INTO categories (id, name, kind, parent_id, archived) VALUES (?,?,?,?,?)',
-    [c.id, c.name, c.kind, c.parentId ?? null, c.archived ? 1 : 0]);
+  db.runAsync('INSERT INTO categories (id, name, kind, parent_id, archived, icon, color) VALUES (?,?,?,?,?,?,?)',
+    [c.id, c.name, c.kind, c.parentId ?? null, c.archived ? 1 : 0, c.icon ?? null, c.color ?? null]);
+
+export const updateCategory = (db: SQLiteDatabase, c: Pick<Category, 'id' | 'name' | 'icon' | 'color' | 'archived'>) =>
+  db.runAsync('UPDATE categories SET name = ?, icon = ?, color = ?, archived = ? WHERE id = ?',
+    [c.name, c.icon ?? null, c.color ?? null, c.archived ? 1 : 0, c.id]);
 
 /** INSERT OR IGNORE : une échéance planifiée déjà créée n'est jamais dupliquée. */
 export const insertTransaction = (db: SQLiteDatabase, t: Transaction) =>
@@ -75,8 +81,8 @@ export const insertGoal = (db: SQLiteDatabase, g: Goal) =>
 
 export const saveRecurrence = (db: SQLiteDatabase, r: RecurrenceRule) =>
   db.runAsync(
-    'INSERT OR REPLACE INTO recurrences (id, template, frequency, interval, start_date, end_date, last_generated) VALUES (?,?,?,?,?,?,?)',
-    [r.id, JSON.stringify(r.template), r.frequency, r.interval, r.startDate, r.endDate ?? null, r.lastGenerated ?? null],
+    'INSERT OR REPLACE INTO recurrences (id, template, frequency, interval, start_date, end_date, last_generated, paused) VALUES (?,?,?,?,?,?,?,?)',
+    [r.id, JSON.stringify(r.template), r.frequency, r.interval, r.startDate, r.endDate ?? null, r.lastGenerated ?? null, r.paused ? 1 : 0],
   );
 
 export const deleteRecurrence = (db: SQLiteDatabase, id: string) =>

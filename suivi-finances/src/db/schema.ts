@@ -16,6 +16,12 @@ const MIGRATIONS: string[] = [
     interval INTEGER NOT NULL, start_date TEXT NOT NULL, end_date TEXT, last_generated TEXT);
   CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
   `,
+  // v2 : icône et couleur des catégories, pause des planifications.
+  `
+  ALTER TABLE categories ADD COLUMN icon TEXT;
+  ALTER TABLE categories ADD COLUMN color TEXT;
+  ALTER TABLE recurrences ADD COLUMN paused INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 /** Applique les migrations manquantes ; la version est suivie par PRAGMA user_version. */

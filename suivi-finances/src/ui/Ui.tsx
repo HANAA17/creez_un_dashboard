@@ -7,10 +7,8 @@ export interface AddPreset {
 
 interface UiApi {
   addPreset: AddPreset | null;
-  settingsOpen: boolean;
   openAdd(preset?: AddPreset): void;
   closeAdd(): void;
-  setSettingsOpen(open: boolean): void;
 }
 
 const Ctx = createContext<UiApi | null>(null);
@@ -23,9 +21,8 @@ export const useUi = (): UiApi => {
 
 export function UiProvider({ children }: { children: React.ReactNode }) {
   const [addPreset, setAddPreset] = useState<AddPreset | null>(null);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   return (
-    <Ctx.Provider value={{ addPreset, settingsOpen, openAdd: (p = {}) => setAddPreset(p), closeAdd: () => setAddPreset(null), setSettingsOpen }}>
+    <Ctx.Provider value={{ addPreset, openAdd: (p = {}) => setAddPreset(p), closeAdd: () => setAddPreset(null) }}>
       {children}
     </Ctx.Provider>
   );

@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { Alert, View } from 'react-native';
-import { accountBalance, parseBalance, type AccountType } from '../domain';
+import { accountBalance, parseBalance, totalBalance, type AccountType } from '../domain';
 import { useData } from '../state/DataContext';
-import { Button, Card, Chip, ChipRow, Empty, Field, Money, Screen, SectionTitle, Txt, rowStyle } from '../ui/components';
+import { ACCOUNT_LOOK } from '../ui/accountLook';
+import { Button, Card, Empty, Field, IconBubble, Money, Screen, Segmented, SectionTitle, Txt, rowStyle } from '../ui/components';
+import { useSeriesColors } from '../ui/palette';
 
 const TYPES: Array<[AccountType, string]> = [['checking', 'Courant'], ['savings', 'Épargne'], ['cash', 'Espèces']];
-const typeLabel = (t: AccountType) => TYPES.find(([k]) => k === t)![1];
 
 export function AccountsScreen() {
   const { data, today, addAccount, setAccountArchived } = useData();
+  const colors = useSeriesColors();
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('checking');
   const [initial, setInitial] = useState('');
@@ -25,7 +27,7 @@ export function AccountsScreen() {
   };
 
   const confirmArchive = (id: string, label: string) =>
-    Alert.alert(`Archiver « ${label} » ?`, "Le compte disparaît des listes mais son historique est conservé. Tu pourras le restaurer.", [
+    Alert.alert(`Archiver « ${label} » ?`, 'Le compte disparaît des listes mais son historique est conservé. Tu pourras le restaurer.', [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Archiver', onPress: () => setAccountArchived(id, true) },
     ]);
@@ -33,25 +35,33 @@ export function AccountsScreen() {
   return (
     <Screen>
       {active.length === 0 && <Empty>Crée ton premier compte pour commencer.</Empty>}
-      {active.map((a) => (
-        <Card key={a.id}>
-          <View style={rowStyle}>
-            <View>
-              <Txt bold>{a.name}</Txt>
-              <Txt sub size={13}>{typeLabel(a.type)}</Txt>
-            </View>
-            <Money cents={accountBalance(a, data.transactions, today)} bold />
-          </View>
-          <Button title="Archiver" variant="ghost" onPress={() => confirmArchive(a.id, a.name)} />
+      {active.length > 1 && (
+        <Card>
+          <Txt sub size={13}>Total</Txt>
+          <Money cents={totalBalance(data.accounts, data.transactions, today)} size={24} bold />
         </Card>
-      ))}
+      )}
+      {active.map((a) => {
+        const l = ACCOUNT_LOOK[a.type];
+        return (
+          <Card key={a.id}>
+            <View style={[rowStyle, { gap: 12 }]}>
+              <IconBubble icon={l.icon} color={colors[l.color]} size={42} />
+              <View style={{ flex: 1 }}>
+                <Txt bold>{a.name}</Txt>
+                <Txt sub size={13}>{l.label}</Txt>
+              </View>
+              <Money cents={accountBalance(a, data.transactions, today)} bold />
+            </View>
+            <Button title="Archiver" variant="ghost" onPress={() => confirmArchive(a.id, a.name)} />
+          </Card>
+        );
+      })}
 
       <SectionTitle>Nouveau compte</SectionTitle>
       <Card>
         <Field label="Nom" value={name} onChangeText={setName} placeholder="Compte courant, Livret A..." />
-        <ChipRow>
-          {TYPES.map(([k, label]) => <Chip key={k} label={label} selected={type === k} onPress={() => setType(k)} />)}
-        </ChipRow>
+        <Segmented options={TYPES} value={type} onChange={setType} />
         <Field label="Solde actuel (€)" value={initial} onChangeText={setInitial} keyboardType="numbers-and-punctuation" placeholder="0,00" />
         <Button title="Créer le compte" onPress={create} />
       </Card>
