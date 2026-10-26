@@ -38,3 +38,8 @@ export function monthsBetween(fromMonth: string, toMonth: string): number {
   const [ty, tm] = toMonth.split('-').map(Number) as [number, number];
   return (ty - fy) * 12 + (tm - fm);
 }
+
+/** Date du jour dans le fuseau du téléphone (et non en UTC). */
+export function todayIso(now: Date = new Date()): IsoDate {
+  return toIso(now.getFullYear(), now.getMonth() + 1, now.getDate());
+}

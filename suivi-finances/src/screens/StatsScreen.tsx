@@ -24,12 +24,12 @@ export function StatsScreen() {
   const [lineIdx, setLineIdx] = useState<number | null>(null);
   const [table, setTable] = useState(false);
 
-  const summary = monthSummary(month, data.transactions, data.categories, today);
+  const summary = monthSummary(month, data.transactions, data.categories, today, data.allocations);
   const byCat = expensesByCategory(month, data.transactions, data.categories, today);
   const catTotal = byCat.reduce((s, x) => s + x.amount, 0);
 
   const months = lastMonths(month, Number(range));
-  const series = monthlySeries(months, data.transactions, data.categories, today);
+  const series = monthlySeries(months, data.transactions, data.categories, today, data.allocations);
   const balances = balanceSeries(months, data.accounts, data.transactions, today);
   const cSel = colIdx !== null && colIdx < series.length ? colIdx : series.length - 1;
   const lSel = lineIdx !== null && lineIdx < balances.length ? lineIdx : balances.length - 1;
@@ -87,7 +87,7 @@ export function StatsScreen() {
                 </Pressable>
               );
             })}
-            <Txt sub size={12} style={{ marginTop: 4 }}>Hors versements d'épargne. Touche une ligne ou un segment pour le mettre en avant.</Txt>
+            <Txt sub size={12} style={{ marginTop: 4 }}>Touche une ligne ou un segment pour le mettre en avant.</Txt>
           </>
         )}
       </Card>

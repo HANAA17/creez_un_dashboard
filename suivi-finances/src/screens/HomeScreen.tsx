@@ -1,9 +1,9 @@
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import {
-  accountBalance, addDays, budgetStatus, formatAmount, goalProgress, monthKey, monthSummary, nextOccurrence, totalBalance,
+  accountBalance, addDays, envelopeBalances, formatAmount, goalProgress, monthKey, monthSummary, nextOccurrence, poolSummary, totalBalance,
   type RecurrenceRule,
 } from '../domain';
 import { useData } from '../state/DataContext';
@@ -34,7 +34,7 @@ function SectionHeader({ title, action, onAction }: { title: string; action?: st
 }
 
 export function HomeScreen() {
-  const { data, today } = useData();
+  const { data, env, today } = useData();
   const nav = useNavigation<any>();
   const t = useTheme();
   const colors = useSeriesColors();
@@ -42,11 +42,10 @@ export function HomeScreen() {
   const month = monthKey(today);
 
   const total = totalBalance(data.accounts, data.transactions, today);
-  const s = monthSummary(month, data.transactions, data.categories, today);
+  const s = monthSummary(month, data.transactions, data.categories, today, data.allocations);
   const accounts = data.accounts.filter((a) => !a.archived);
-  const alerts = data.budgets
-    .map((budget) => ({ budget, status: budgetStatus(budget, month, data.transactions, data.categories, today) }))
-    .filter((x) => x.status.level !== 'ok');
+  const pool = poolSummary(data.accounts, env, today);
+  const overspent = [...envelopeBalances(env, today).entries()].filter(([, v]) => v < 0).sort((a, b) => a[1] - b[1]);
   const horizon = addDays(today, 30);
   const upcoming = data.recurrences
     .filter((r) => !r.paused)
@@ -91,24 +90,36 @@ export function HomeScreen() {
         </>
       )}
 
-      {alerts.length > 0 && (
+      {pool.toAllocate !== 0 && (
+        <Pressable onPress={() => nav.navigate('Enveloppes')}>
+          <Card style={{ borderColor: pool.toAllocate < 0 ? t.neg : t.primary, borderWidth: 1.5 }}>
+            <View style={[rowStyle, { paddingVertical: 0, gap: 12 }]}>
+              <IconBubble icon={pool.toAllocate > 0 ? 'cash' : 'alert'} color={pool.toAllocate > 0 ? t.primary : t.neg} size={40} />
+              <View style={{ flex: 1 }}>
+                <Txt bold>{pool.toAllocate > 0 ? `${formatAmount(pool.toAllocate)} à répartir` : `Réparti en trop : ${formatAmount(-pool.toAllocate)}`}</Txt>
+                <Txt sub size={13}>{pool.toAllocate > 0 ? 'Mets cet argent dans tes enveloppes.' : 'Retire de l\'argent d\'une enveloppe.'}</Txt>
+              </View>
+              <Txt color={t.primary} bold>Ouvrir ›</Txt>
+            </View>
+          </Card>
+        </Pressable>
+      )}
+
+      {overspent.length > 0 && (
         <>
-          <SectionTitle>Budgets à surveiller</SectionTitle>
-          {alerts.map(({ budget, status }) => {
-            const l = look(budget.categoryId);
-            const c = status.level === 'exceeded' ? t.neg : t.warn;
-            return (
-              <Card key={budget.categoryId}>
-                <View style={[rowStyle, { paddingVertical: 0, gap: 12 }]}>
+          <SectionTitle>Enveloppes dépassées</SectionTitle>
+          <Card style={{ paddingVertical: 4 }}>
+            {overspent.slice(0, 4).map(([id, value], i) => {
+              const l = look(id);
+              return (
+                <View key={id} style={[rowStyle, { gap: 12 }, i > 0 && { borderTopWidth: 0.5, borderTopColor: t.border }]}>
                   <IconBubble icon={l.icon} color={l.color} size={34} />
-                  <Txt bold style={{ flex: 1 }}>{l.name}</Txt>
-                  <Txt color={c} bold>{Math.round(status.ratio * 100)} %</Txt>
+                  <Txt style={{ flex: 1 }}>{l.name}</Txt>
+                  <Txt bold color={t.neg}>{formatAmount(value)}</Txt>
                 </View>
-                <ProgressBar ratio={status.ratio} color={c} />
-                <Txt sub size={13} style={{ marginTop: 6 }}>{formatAmount(status.spent)} sur {formatAmount(budget.amount)}</Txt>
-              </Card>
-            );
-          })}
+              );
+            })}
+          </Card>
         </>
       )}
 
@@ -117,7 +128,7 @@ export function HomeScreen() {
           <SectionHeader title="Objectifs d'épargne" action="Voir" onAction={() => nav.navigate('Plus', { page: 'savings' })} />
           <Card>
             {data.goals.slice(0, 3).map((g, i) => {
-              const p = goalProgress(g, data.transactions, today);
+              const p = goalProgress(g, env, today);
               const l = look(g.categoryId);
               return (
                 <View key={g.id} style={i > 0 ? { marginTop: 14 } : undefined}>

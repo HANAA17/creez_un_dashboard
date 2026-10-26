@@ -3,10 +3,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { ActivityIndicator, Pressable, View, useColorScheme } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, View, useColorScheme } from 'react-native';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddTransactionSheet } from './src/screens/AddTransactionSheet';
-import { BudgetsScreen } from './src/screens/BudgetsScreen';
+import { EnvelopesScreen } from './src/screens/EnvelopesScreen';
 import { HomeScreen } from './src/screens/HomeScreen';
 import { LockGate } from './src/screens/LockGate';
 import { MoreScreen } from './src/screens/MoreScreen';
@@ -22,7 +22,7 @@ const TABS: Array<{ name: string; component: React.ComponentType<any>; icon: key
   { name: 'Accueil', component: HomeScreen, icon: 'home' },
   { name: 'Transactions', component: TransactionsScreen, icon: 'list' },
   { name: 'Statistiques', component: StatsScreen, icon: 'pie-chart' },
-  { name: 'Budgets', component: BudgetsScreen, icon: 'speedometer' },
+  { name: 'Enveloppes', component: EnvelopesScreen, icon: 'layers' },
   { name: 'Plus', component: MoreScreen, icon: 'grid' },
 ];
 
@@ -64,9 +64,27 @@ function AddButton() {
 }
 
 function Root() {
-  const { ready } = useData();
+  const { ready, migrationNotice, dismissMigrationNotice } = useData();
   const t = useTheme();
   const dark = useColorScheme() === 'dark';
+
+  // Après la mise à niveau vers les enveloppes, on explique une fois ce qui a été converti.
+  React.useEffect(() => {
+    if (!ready || !migrationNotice) return;
+    const { converted, removedRules } = migrationNotice;
+    const lines = [
+      'Ton budget fonctionne maintenant par enveloppes : tu répartis ton argent par catégorie et ce qui reste se cumule.',
+      converted > 0
+        ? `${converted} versement${converted > 1 ? 's' : ''} d'épargne converti${converted > 1 ? 's' : ''} en réservation. Ils ne sont plus des dépenses : les soldes de tes comptes peuvent avoir changé, vérifie-les.`
+        : null,
+      removedRules > 0
+        ? `${removedRules} planification${removedRules > 1 ? 's' : ''} d'épargne retirée${removedRules > 1 ? 's' : ''} : utilise le plan mensuel.`
+        : null,
+      "Ton argent est dans « À répartir » : ouvre l'onglet Enveloppes pour le répartir.",
+    ].filter(Boolean);
+    Alert.alert('Nouveau : les enveloppes', lines.join('\n\n'), [{ text: 'Compris', onPress: () => dismissMigrationNotice() }]);
+  }, [ready, migrationNotice, dismissMigrationNotice]);
+
   if (!ready) {
     return <View style={{ flex: 1, justifyContent: 'center', backgroundColor: t.bg }}><ActivityIndicator /></View>;
   }

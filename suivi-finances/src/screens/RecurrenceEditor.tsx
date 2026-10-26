@@ -1,7 +1,7 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useState } from 'react';
 import { Alert, Modal, Switch, View } from 'react-native';
-import { parseAmount, upcomingOccurrences, type Frequency, type RecurrenceRule } from '../domain';
+import { currencySymbol, parseAmount, upcomingOccurrences, type Frequency, type RecurrenceRule } from '../domain';
 import { useData } from '../state/DataContext';
 import { Button, Card, Chip, ChipRow, Field, Screen, Segmented, SectionTitle, Txt, rowStyle } from '../ui/components';
 import { dateToIso, frequencyLabel, isoToDate, shortDate } from '../ui/format';
@@ -45,12 +45,12 @@ function Form({ rule, onClose }: { rule: RecurrenceRule | null; onClose: () => v
   const destId = accounts.some((a) => a.id === toAccountId && a.id !== accountId)
     ? toAccountId
     : (accounts.find((a) => a.id !== accountId)?.id ?? '');
-  const categories = data.categories.filter((c) => !c.archived && kind !== 'transfer' && (c.kind === 'savings' || c.kind === kind));
+  const categories = data.categories.filter((c) => !c.archived && kind !== 'transfer' && (c.kind === kind || (c.kind === 'savings' && kind === 'expense')));
 
   const changeKind = (k: Kind) => {
     setKind(k);
     const c = data.categories.find((x) => x.id === categoryId);
-    if (c && c.kind !== 'savings' && c.kind !== k) setCategoryId('');
+    if (c && c.kind !== k && !(c.kind === 'savings' && k === 'expense')) setCategoryId('');
   };
 
   const preview = upcomingOccurrences(
@@ -97,7 +97,7 @@ function Form({ rule, onClose }: { rule: RecurrenceRule | null; onClose: () => v
         ? <Txt sub size={13}>Le type, le rythme et la date de début ne changent plus après création. Pour les modifier, supprime la planification et recrée-la.</Txt>
         : <Segmented options={KINDS} value={kind} onChange={changeKind} />}
 
-      <Field label="Montant (€)" value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0,00" />
+      <Field label={`Montant (${currencySymbol()})`} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0,00" />
 
       <Txt sub size={13} style={{ marginBottom: 6 }}>{kind === 'transfer' ? 'Depuis le compte' : 'Compte'}</Txt>
       <ChipRow>

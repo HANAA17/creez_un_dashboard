@@ -15,8 +15,8 @@ export interface Account {
 
 /**
  * - expense / income : catégories classiques
- * - savings : catégorie d'épargne, rattachée à un objectif.
- *   Dépense (type 'expense') = versement, revenu (type 'income') = retrait.
+ * - savings : catégorie d'épargne, rattachée à un objectif. C'est une enveloppe comme les autres :
+ *   on y réserve de l'argent (répartition) et seules les dépenses (type 'expense') la vident.
  */
 export type CategoryKind = 'expense' | 'income' | 'savings';
 
@@ -56,9 +56,24 @@ export interface Transfer extends TransactionBase {
 
 export type Transaction = Flow | Transfer;
 
+/**
+ * Mouvement d'argent entre « À répartir » et une enveloppe (une catégorie de dépense ou d'épargne).
+ * Le montant est signé : positif = argent mis dans l'enveloppe, négatif = argent retiré.
+ * Un transfert entre deux enveloppes = deux lignes qui partagent le même groupId.
+ */
+export interface Allocation {
+  id: string;
+  date: IsoDate;
+  categoryId: string;
+  amount: Cents;
+  groupId?: string | null;
+  note?: string;
+}
+
+/** Plan mensuel : montant habituel à répartir dans une enveloppe à chaque salaire. */
 export interface Budget {
   categoryId: string;
-  /** Plafond mensuel (mois civil, du 1er au dernier jour). */
+  /** Montant habituel à mettre dans l'enveloppe chaque mois. */
   amount: Cents;
 }
 

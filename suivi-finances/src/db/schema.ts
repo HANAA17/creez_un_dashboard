@@ -1,6 +1,49 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
+import { todayIso } from '../domain';
 
-const MIGRATIONS: string[] = [
+type Migration = string | ((db: SQLiteDatabase) => Promise<void>);
+
+/**
+ * v3 : enveloppes. Les anciens « versements » et « retraits » d'épargne (transactions sur une catégorie d'épargne)
+ * deviennent des répartitions ; les planifications d'épargne sont retirées. Les anciens budgets mensuels
+ * deviennent le plan mensuel (même table).
+ */
+async function toEnvelopes(db: SQLiteDatabase): Promise<void> {
+  await db.execAsync(`
+    CREATE TABLE allocations (id TEXT PRIMARY KEY, date TEXT NOT NULL, category_id TEXT NOT NULL,
+      amount INTEGER NOT NULL, group_id TEXT, note TEXT);
+    CREATE INDEX idx_allocations_category ON allocations(category_id);
+  `);
+  const ids = (await db.getAllAsync<{ id: string }>("SELECT id FROM categories WHERE kind = 'savings'")).map((r) => r.id);
+  let converted = 0;
+  let removedRules = 0;
+  if (ids.length > 0) {
+    const marks = ids.map(() => '?').join(',');
+    const txs = await db.getAllAsync<{ id: string; type: string; amount: number; date: string; category_id: string }>(
+      `SELECT id, type, amount, date, category_id FROM transactions WHERE category_id IN (${marks})`, ids);
+    for (const t of txs) {
+      await db.runAsync('INSERT INTO allocations (id, date, category_id, amount, group_id, note) VALUES (?,?,?,?,NULL,?)',
+        [`mig-${t.id}`, t.date, t.category_id, t.type === 'expense' ? t.amount : -t.amount, 'Migration épargne']);
+    }
+    converted = txs.length;
+    await db.runAsync(`DELETE FROM transactions WHERE category_id IN (${marks})`, ids);
+    for (const r of await db.getAllAsync<{ id: string; template: string }>('SELECT id, template FROM recurrences')) {
+      const tpl = JSON.parse(r.template);
+      if (tpl.categoryId && ids.includes(tpl.categoryId)) {
+        await db.runAsync('DELETE FROM recurrences WHERE id = ?', [r.id]);
+        removedRules++;
+      }
+    }
+  }
+  await db.runAsync("INSERT OR REPLACE INTO settings (key, value) VALUES ('envelopes_start', ?)", [todayIso()]);
+  // On prévient les personnes qui avaient déjà des données (et pas une installation neuve).
+  const used = await db.getFirstAsync<{ n: number }>('SELECT (SELECT COUNT(*) FROM accounts) + (SELECT COUNT(*) FROM transactions) AS n');
+  if (converted > 0 || removedRules > 0 || (used?.n ?? 0) > 0) {
+    await db.runAsync("INSERT OR REPLACE INTO settings (key, value) VALUES ('migration_notice', ?)", [JSON.stringify({ converted, removedRules })]);
+  }
+}
+
+const MIGRATIONS: Migration[] = [
   `
   CREATE TABLE accounts (id TEXT PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL,
     initial_balance INTEGER NOT NULL, archived INTEGER NOT NULL DEFAULT 0);
@@ -22,6 +65,7 @@ const MIGRATIONS: string[] = [
   ALTER TABLE categories ADD COLUMN color TEXT;
   ALTER TABLE recurrences ADD COLUMN paused INTEGER NOT NULL DEFAULT 0;
   `,
+  toEnvelopes,
 ];
 
 /** Applique les migrations manquantes ; la version est suivie par PRAGMA user_version. */
@@ -31,7 +75,9 @@ export async function migrate(db: SQLiteDatabase): Promise<void> {
   const current = row?.user_version ?? 0;
   for (let v = current; v < MIGRATIONS.length; v++) {
     await db.withTransactionAsync(async () => {
-      await db.execAsync(MIGRATIONS[v]!);
+      const step = MIGRATIONS[v]!;
+      if (typeof step === 'string') await db.execAsync(step);
+      else await step(db);
       await db.execAsync(`PRAGMA user_version = ${v + 1}`);
     });
   }

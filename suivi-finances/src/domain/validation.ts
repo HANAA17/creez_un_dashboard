@@ -29,8 +29,10 @@ export function validateTransaction(
   if (!c) errors.push('Catégorie introuvable.');
   else {
     if (c.archived) errors.push(`La catégorie « ${c.name} » est archivée.`);
-    // Une catégorie d'épargne accepte versements (expense) et retraits (income).
-    if (c.kind !== 'savings' && c.kind !== tx.type) {
+    // Une catégorie d'épargne n'accepte que des dépenses (argent sorti de l'objectif). Verser ou retirer
+    // se fait par transfert entre enveloppes, pas par une transaction.
+    const ok = c.kind === 'savings' ? tx.type === 'expense' : c.kind === tx.type;
+    if (!ok) {
       errors.push(`La catégorie « ${c.name} » ne convient pas à une transaction de type ${tx.type === 'expense' ? 'dépense' : 'revenu'}.`);
     }
   }

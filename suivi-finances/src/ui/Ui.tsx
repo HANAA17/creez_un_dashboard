@@ -3,6 +3,8 @@ import React, { createContext, useContext, useState } from 'react';
 export interface AddPreset {
   type?: 'expense' | 'income' | 'transfer';
   categoryId?: string;
+  /** Identifiant d'une transaction à modifier. */
+  editId?: string;
 }
 
 interface UiApi {

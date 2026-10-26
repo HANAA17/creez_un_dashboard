@@ -59,7 +59,7 @@ describe('graphiques', () => {
   const f = (id: string, type: 'expense' | 'income', amount: number, date: string, categoryId: string): Flow =>
     ({ id, type, amount, date, categoryId, accountId: 'a1' });
 
-  it('regroupe les sous-catégories, exclut l’épargne, trie par montant', () => {
+  it('regroupe les sous-catégories, inclut les dépenses d’épargne, trie par montant', () => {
     const txs: Transaction[] = [
       f('1', 'expense', 50000, '2026-10-01', 'p-sub'),
       f('2', 'expense', 10000, '2026-10-02', 'p'),
@@ -69,7 +69,7 @@ describe('graphiques', () => {
       f('6', 'expense', 7000, '2026-11-01', 'c2'),
     ];
     expect(expensesByCategory('2026-10', txs, cats, '2026-10-25')).toEqual([
-      { categoryId: 'p', amount: 60000 }, { categoryId: 'c2', amount: 30000 },
+      { categoryId: 's', amount: 99999 }, { categoryId: 'p', amount: 60000 }, { categoryId: 'c2', amount: 30000 },
     ]);
   });
 

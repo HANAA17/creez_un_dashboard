@@ -5,10 +5,10 @@ import * as Sharing from 'expo-sharing';
 import React from 'react';
 import { Alert, Switch, View } from 'react-native';
 import { useData } from '../state/DataContext';
-import { Button, Card, Screen, SectionTitle, Txt, rowStyle } from '../ui/components';
+import { Button, Card, Screen, Segmented, SectionTitle, Txt, rowStyle } from '../ui/components';
 
 export function SettingsScreen() {
-  const { lockEnabled, setLockEnabled, exportBackup, importBackup } = useData();
+  const { lockEnabled, setLockEnabled, exportBackup, importBackup, currency, setCurrency } = useData();
 
   const toggleLock = async (on: boolean) => {
     if (on) {
@@ -56,6 +56,12 @@ export function SettingsScreen() {
 
   return (
     <Screen>
+      <SectionTitle>Devise</SectionTitle>
+      <Card>
+        <Segmented options={[['MAD', 'Dirham (DH)'], ['EUR', 'Euro (€)']]} value={currency} onChange={(c) => setCurrency(c)} />
+        <Txt sub size={13}>Change seulement l'affichage : les montants déjà saisis ne sont pas convertis.</Txt>
+      </Card>
+
       <SectionTitle>Sécurité</SectionTitle>
       <Card>
         <View style={rowStyle}>

@@ -1,18 +1,19 @@
 import React, { useState } from 'react';
 import { Platform, View } from 'react-native';
 import Svg, { Circle, G, Line, Path, Rect, Text as SvgText } from 'react-native-svg';
-import type { Cents } from '../domain';
+import { currencySymbol, type Cents } from '../domain';
 import { useTheme } from './theme';
 
 /** Police des libellés SVG : celle du système (sans cela, le navigateur retombe sur une police à empattements). */
 const FONT = Platform.select({ web: 'system-ui, -apple-system, sans-serif', default: undefined });
 
-/** « 1 250 € » -> « 1,3 k€ » : libellés d'axe courts. */
+/** « 1 250 DH » -> « 1,3 k DH » : libellés d'axe courts. */
 export function compactAmount(cents: Cents): string {
   const e = Math.abs(cents) / 100;
   const sign = cents < 0 ? '−' : '';
-  if (e < 1000) return `${sign}${Math.round(e)} €`;
-  return `${sign}${(e / 1000).toFixed(1).replace('.', ',').replace(',0', '')} k€`;
+  const unit = currencySymbol();
+  if (e < 1000) return `${sign}${Math.round(e)} ${unit}`;
+  return `${sign}${(e / 1000).toFixed(1).replace('.', ',').replace(',0', '')} k${unit === '€' ? '€' : ` ${unit}`}`;
 }
 
 /** Plafond d'axe « rond » (1, 2, 5, 10 × puissance de 10), en centimes. */

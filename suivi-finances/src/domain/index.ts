@@ -3,7 +3,7 @@ export * from './money';
 export * from './dates';
 export * from './validation';
 export * from './balances';
-export * from './budgets';
+export * from './envelopes';
 export * from './goals';
 export * from './stats';
 export * from './recurrence';

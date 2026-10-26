@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  accountBalance, budgetStatus, dueOccurrences, formatAmount, generateDue, goalProgress,
-  monthSummary, parseAmount, totalBalance, validateTransaction,
+  accountBalance, dueOccurrences, formatAmount, generateDue, goalProgress, getCurrency, setCurrency,
+  monthSummary, parseAmount, parseOptionalAmount, totalBalance, validateTransaction,
   type Account, type Category, type Flow, type RecurrenceRule, type Transaction, type Transfer,
 } from '../src/domain';
 
@@ -33,8 +33,26 @@ describe('montants décimaux', () => {
     expect(parseAmount('19,99')! * 3).toBe(5997);
   });
 
-  it('formate en euros français', () => {
-    expect(formatAmount(123450).replace(/[  ]/g, ' ')).toBe('1 234,50 €');
+  it('formate en dirhams par défaut, en euros sur demande', () => {
+    const norm = (s: string) => s.replace(/[\u202f\u00a0]/g, ' ');
+    expect(getCurrency()).toBe('MAD');
+    expect(norm(formatAmount(123450))).toBe('1 234,50 DH');
+    setCurrency('EUR');
+    expect(norm(formatAmount(123450))).toBe('1 234,50 €');
+    setCurrency('MAD');
+  });
+
+  it('accepte DH, MAD et € dans la saisie', () => {
+    expect(parseAmount('1 200,50 DH')).toBe(120050);
+    expect(parseAmount('300 mad')).toBe(30000);
+  });
+
+  it('montant facultatif : vide ou 0 = 0, jamais négatif', () => {
+    expect(parseOptionalAmount('')).toBe(0);
+    expect(parseOptionalAmount('0')).toBe(0);
+    expect(parseOptionalAmount('250,5')).toBe(25050);
+    expect(parseOptionalAmount('-5')).toBeNull();
+    expect(parseOptionalAmount('abc')).toBeNull();
   });
 });
 
@@ -78,63 +96,9 @@ describe('validation', () => {
   it('refuse une catégorie de revenu pour une dépense', () => {
     expect(validateTransaction(flow('x', 'expense', 100, '2026-10-01', 'c-salaire'), accounts, cats)).not.toEqual([]);
   });
-  it('accepte versement et retrait sur une catégorie d’épargne', () => {
+  it('une catégorie d’épargne accepte une dépense mais pas un revenu', () => {
     expect(validateTransaction(flow('x', 'expense', 100, '2026-10-01', 'c-voyage'), accounts, cats)).toEqual([]);
-    expect(validateTransaction(flow('y', 'income', 100, '2026-10-01', 'c-voyage'), accounts, cats)).toEqual([]);
-  });
-});
-
-describe('budgets (mois civil, 1er du mois)', () => {
-  const budget = { categoryId: 'c-courses', amount: 40000 };
-  const spend = (amount: number) => [flow('t', 'expense', amount, '2026-10-15', 'c-courses')];
-
-  it('ok sous 80 %', () => expect(budgetStatus(budget, '2026-10', spend(31999), cats, '2026-10-25').level).toBe('ok'));
-  it('warning à 80 %', () => expect(budgetStatus(budget, '2026-10', spend(32000), cats, '2026-10-25').level).toBe('warning'));
-  it('exceeded à 100 %', () => expect(budgetStatus(budget, '2026-10', spend(40000), cats, '2026-10-25').level).toBe('exceeded'));
-
-  it('ne compte que le mois demandé, sans report', () => {
-    const txs = [flow('a', 'expense', 10000, '2026-09-30', 'c-courses'), flow('b', 'expense', 5000, '2026-10-01', 'c-courses')];
-    expect(budgetStatus(budget, '2026-10', txs, cats, '2026-10-25').spent).toBe(5000);
-  });
-
-  it('inclut les sous-catégories', () => {
-    const withSub = [...cats, { id: 'c-bio', name: 'Bio', kind: 'expense' as const, parentId: 'c-courses', archived: false }];
-    const txs = [flow('a', 'expense', 7000, '2026-10-02', 'c-bio')];
-    expect(budgetStatus(budget, '2026-10', txs, withSub, '2026-10-25').spent).toBe(7000);
-  });
-});
-
-describe('objectifs d’épargne liés à une catégorie', () => {
-  const voyage = { id: 'g1', name: 'Voyage', categoryId: 'c-voyage', target: 100000, targetDate: '2027-01-31' };
-  const apport = { id: 'g2', name: 'Apport', categoryId: 'c-apport', target: 500000 };
-  const txs: Transaction[] = [
-    flow('a', 'expense', 30000, '2026-09-10', 'c-voyage'),
-    flow('b', 'expense', 20000, '2026-10-10', 'c-voyage'),
-    flow('c', 'income', 5000, '2026-10-12', 'c-voyage'), // retrait
-    flow('d', 'expense', 90000, '2026-10-12', 'c-apport'),
-  ];
-
-  it('plusieurs objectifs indépendants', () => {
-    expect(goalProgress(voyage, txs, '2026-10-25').saved).toBe(45000);
-    expect(goalProgress(apport, txs, '2026-10-25').saved).toBe(90000);
-  });
-
-  it('calcule le versement mensuel nécessaire (oct. à janv. = 4 mois)', () => {
-    const p = goalProgress(voyage, txs, '2026-10-25');
-    expect(p.remaining).toBe(55000);
-    expect(p.monthlyNeeded).toBe(Math.ceil(55000 / 4));
-  });
-
-  it('détecte un objectif atteint ou échu', () => {
-    expect(goalProgress({ ...voyage, target: 40000 }, txs, '2026-10-25').reached).toBe(true);
-    expect(goalProgress({ ...voyage, targetDate: '2026-09-30' }, txs, '2026-10-25').overdue).toBe(true);
-  });
-
-  it('versements d’épargne comptés à part, hors dépenses', () => {
-    const s = monthSummary('2026-10', [...txs, flow('i', 'income', 300000, '2026-10-01', 'c-salaire')], cats, '2026-10-25');
-    expect(s.expenses).toBe(0);
-    expect(s.savedToGoals).toBe(20000 - 5000 + 90000);
-    expect(s.savingsRate).toBe(1);
+    expect(validateTransaction(flow('y', 'income', 100, '2026-10-01', 'c-voyage'), accounts, cats)).not.toEqual([]);
   });
 });
 

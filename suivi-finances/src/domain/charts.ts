@@ -1,7 +1,7 @@
 import { addMonthsClamped, daysInMonth, monthKey, parseDate, toIso } from './dates';
 import { accountBalance } from './balances';
 import { monthSummary, type MonthSummary } from './stats';
-import type { Account, Category, Cents, IsoDate, Transaction } from './types';
+import type { Account, Allocation, Category, Cents, IsoDate, Transaction } from './types';
 
 export interface CategoryTotal {
   /** null = regroupement « Autres ». */
@@ -11,7 +11,7 @@ export interface CategoryTotal {
 
 /**
  * Dépenses du mois par catégorie, triées, regroupées sur la catégorie parente.
- * Les versements d'épargne ne sont pas des dépenses. Au-delà de `max` lignes, le reste est regroupé en « Autres ».
+ * Les dépenses faites depuis une enveloppe d'épargne comptent aussi. Au-delà de `max` lignes, le reste est regroupé en « Autres ».
  */
 export function expensesByCategory(
   month: string,
@@ -25,7 +25,7 @@ export function expensesByCategory(
   for (const tx of txs) {
     if (tx.type !== 'expense' || monthKey(tx.date) !== month || tx.date > asOf) continue;
     const c = byId.get(tx.categoryId);
-    if (!c || c.kind !== 'expense') continue;
+    if (!c || c.kind === 'income') continue;
     const root = c.parentId && byId.has(c.parentId) ? c.parentId : c.id;
     totals.set(root, (totals.get(root) ?? 0) + tx.amount);
   }
@@ -45,8 +45,8 @@ export interface MonthPoint extends MonthSummary {
   month: string;
 }
 
-export function monthlySeries(months: string[], txs: Transaction[], categories: Category[], asOf: IsoDate): MonthPoint[] {
-  return months.map((month) => ({ month, ...monthSummary(month, txs, categories, asOf) }));
+export function monthlySeries(months: string[], txs: Transaction[], categories: Category[], asOf: IsoDate, allocations: Allocation[] = []): MonthPoint[] {
+  return months.map((month) => ({ month, ...monthSummary(month, txs, categories, asOf, allocations) }));
 }
 
 export interface BalancePoint {

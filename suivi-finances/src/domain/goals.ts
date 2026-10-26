@@ -1,5 +1,6 @@
 import { monthKey, monthsBetween } from './dates';
-import type { Cents, Goal, IsoDate, Transaction } from './types';
+import { envelopeBalance, type EnvelopeData } from './envelopes';
+import type { Cents, Goal, IsoDate } from './types';
 
 export interface GoalProgress {
   saved: Cents;
@@ -12,16 +13,9 @@ export interface GoalProgress {
   overdue: boolean;
 }
 
-/**
- * Épargne d'un objectif = versements (type 'expense') − retraits (type 'income')
- * sur sa catégorie d'épargne. Le solde initial est un versement daté du jour de création.
- */
-export function goalProgress(goal: Goal, txs: Transaction[], asOf: IsoDate): GoalProgress {
-  const saved = txs.reduce((sum, tx) => {
-    if (tx.type === 'transfer' || tx.categoryId !== goal.categoryId || tx.date > asOf) return sum;
-    return sum + (tx.type === 'expense' ? tx.amount : -tx.amount);
-  }, 0);
-
+/** Épargne d'un objectif = solde de son enveloppe d'épargne (argent réparti − dépenses faites sur cet objectif). */
+export function goalProgress(goal: Goal, d: EnvelopeData, asOf: IsoDate): GoalProgress {
+  const saved = envelopeBalance(goal.categoryId, d, asOf);
   const remaining = Math.max(0, goal.target - saved);
   const reached = saved >= goal.target;
 
@@ -35,9 +29,9 @@ export function goalProgress(goal: Goal, txs: Transaction[], asOf: IsoDate): Goa
   }
 
   return {
-    saved,
+    saved: Math.max(0, saved),
     remaining,
-    ratio: goal.target > 0 ? saved / goal.target : 0,
+    ratio: goal.target > 0 ? Math.max(0, saved) / goal.target : 0,
     reached,
     monthlyNeeded,
     overdue,

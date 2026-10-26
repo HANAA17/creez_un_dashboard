@@ -3,6 +3,7 @@ import { Alert, Modal, View } from 'react-native';
 import type { Category, CategoryKind } from '../domain';
 import { useData } from '../state/DataContext';
 import { Button, Card, ColorPicker, Field, IconBubble, IconPicker, Screen, SectionTitle, Txt, rowStyle } from '../ui/components';
+import { DeleteCategorySheet } from './DeleteCategorySheet';
 import { categoryIcon, type IconName } from '../ui/icons';
 import { COLOR_KEYS, categoryColorKey, useSeriesColors, type ColorKey } from '../ui/palette';
 
@@ -35,6 +36,7 @@ function Form({ kind, category, onClose, onSaved }: {
   const [color, setColor] = useState<ColorKey>(category ? categoryColorKey(category) : suggested());
   const [icon, setIcon] = useState<IconName>(category ? categoryIcon(category) : categoryIcon({ icon: null, kind }));
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const save = async () => {
     setSaving(true);
@@ -79,8 +81,10 @@ function Form({ kind, category, onClose, onSaved }: {
       <IconPicker value={icon} color={colors[color]} onChange={setIcon} />
 
       <Button title={saving ? 'Enregistrement…' : 'Enregistrer'} onPress={save} disabled={saving || !name.trim()} />
-      {category && !linkedToGoal && !category.archived && <Button title="Archiver cette catégorie" variant="danger" onPress={archive} />}
-      {linkedToGoal && <Txt sub size={13} style={{ textAlign: 'center' }}>Cette catégorie alimente un objectif d'épargne : elle ne peut pas être archivée.</Txt>}
+      {category && !linkedToGoal && !category.archived && <Button title="Archiver cette catégorie" variant="ghost" onPress={archive} />}
+      {category && <Button title="Supprimer cette catégorie" variant="danger" onPress={() => setDeleting(true)} />}
+      {linkedToGoal && <Txt sub size={13} style={{ textAlign: 'center' }}>Cette catégorie est l'enveloppe d'un objectif d'épargne : elle ne s'archive pas, mais peut être supprimée avec son objectif.</Txt>}
+      <DeleteCategorySheet category={deleting ? category : null} onClose={() => setDeleting(false)} onDeleted={() => { setDeleting(false); onClose(); }} />
     </Screen>
   );
 }

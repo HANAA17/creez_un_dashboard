@@ -4,7 +4,7 @@ import {
   Pressable, ScrollView, StyleSheet, Text, TextInput, View,
   type StyleProp, type TextInputProps, type TextStyle, type ViewStyle,
 } from 'react-native';
-import { formatAmount, type Cents } from '../domain';
+import { currencySymbol, formatAmount, type Cents } from '../domain';
 import { ICON_CHOICES, type IconName } from './icons';
 import { COLOR_KEYS, LABELS, useSeriesColors, type ColorKey } from './palette';
 import { useTheme } from './theme';
@@ -103,6 +103,25 @@ export function IconBubble({ icon, color, size = 40 }: { icon: IconName; color: 
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: color, alignItems: 'center', justifyContent: 'center' }}>
       <Ionicons name={icon} size={size * 0.52} color="#ffffff" />
+    </View>
+  );
+}
+
+/** Ligne « pastille + libellé + champ de montant » : répartition, plan mensuel. */
+export function AmountRow({ icon, color, title, subtitle, value, onChange, placeholder = '0' }: {
+  icon: IconName; color: string; title: string; subtitle?: string; value: string; onChange: (v: string) => void; placeholder?: string;
+}) {
+  const t = useTheme();
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 }}>
+      <IconBubble icon={icon} color={color} size={38} />
+      <View style={{ flex: 1 }}>
+        <Txt>{title}</Txt>
+        {!!subtitle && <Txt sub size={12}>{subtitle}</Txt>}
+      </View>
+      <TextInput value={value} onChangeText={onChange} keyboardType="decimal-pad" placeholder={placeholder} placeholderTextColor={t.sub}
+        style={{ width: 96, textAlign: 'right', borderWidth: 1, borderColor: t.border, borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, fontSize: 16, color: t.text, backgroundColor: t.card }} />
+      <Txt sub size={13}>{currencySymbol()}</Txt>
     </View>
   );
 }

@@ -1,19 +1,24 @@
+import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Alert, View } from 'react-native';
-import { accountBalance, parseBalance, totalBalance, type AccountType } from '../domain';
+import { Alert, Pressable, View } from 'react-native';
+import { accountBalance, currencySymbol, parseBalance, totalBalance, type Account, type AccountType } from '../domain';
 import { useData } from '../state/DataContext';
 import { ACCOUNT_LOOK } from '../ui/accountLook';
 import { Button, Card, Empty, Field, IconBubble, Money, Screen, Segmented, SectionTitle, Txt, rowStyle } from '../ui/components';
 import { useSeriesColors } from '../ui/palette';
+import { useTheme } from '../ui/theme';
+import { AccountEditor } from './AccountEditor';
 
 const TYPES: Array<[AccountType, string]> = [['checking', 'Courant'], ['savings', 'Épargne'], ['cash', 'Espèces']];
 
 export function AccountsScreen() {
   const { data, today, addAccount, setAccountArchived } = useData();
   const colors = useSeriesColors();
+  const t = useTheme();
   const [name, setName] = useState('');
   const [type, setType] = useState<AccountType>('checking');
   const [initial, setInitial] = useState('');
+  const [editing, setEditing] = useState<Account | null>(null);
 
   const active = data.accounts.filter((a) => !a.archived);
   const archived = data.accounts.filter((a) => a.archived);
@@ -25,12 +30,6 @@ export function AccountsScreen() {
     await addAccount({ name, type, initialBalance });
     setName(''); setInitial('');
   };
-
-  const confirmArchive = (id: string, label: string) =>
-    Alert.alert(`Archiver « ${label} » ?`, 'Le compte disparaît des listes mais son historique est conservé. Tu pourras le restaurer.', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Archiver', onPress: () => setAccountArchived(id, true) },
-    ]);
 
   return (
     <Screen>
@@ -44,25 +43,28 @@ export function AccountsScreen() {
       {active.map((a) => {
         const l = ACCOUNT_LOOK[a.type];
         return (
-          <Card key={a.id}>
-            <View style={[rowStyle, { gap: 12 }]}>
-              <IconBubble icon={l.icon} color={colors[l.color]} size={42} />
-              <View style={{ flex: 1 }}>
-                <Txt bold>{a.name}</Txt>
-                <Txt sub size={13}>{l.label}</Txt>
+          <Pressable key={a.id} onPress={() => setEditing(a)} accessibilityRole="button" accessibilityLabel={`Modifier ${a.name}`}>
+            <Card>
+              <View style={[rowStyle, { gap: 12, paddingVertical: 0 }]}>
+                <IconBubble icon={l.icon} color={colors[l.color]} size={42} />
+                <View style={{ flex: 1 }}>
+                  <Txt bold>{a.name}</Txt>
+                  <Txt sub size={13}>{l.label}</Txt>
+                </View>
+                <Money cents={accountBalance(a, data.transactions, today)} bold />
+                <Ionicons name="chevron-forward" size={18} color={t.sub} />
               </View>
-              <Money cents={accountBalance(a, data.transactions, today)} bold />
-            </View>
-            <Button title="Archiver" variant="ghost" onPress={() => confirmArchive(a.id, a.name)} />
-          </Card>
+            </Card>
+          </Pressable>
         );
       })}
+      {active.length > 0 && <Txt sub size={12} style={{ textAlign: 'center' }}>Touche un compte pour le modifier, l'archiver ou le supprimer.</Txt>}
 
       <SectionTitle>Nouveau compte</SectionTitle>
       <Card>
         <Field label="Nom" value={name} onChangeText={setName} placeholder="Compte courant, Livret A..." />
         <Segmented options={TYPES} value={type} onChange={setType} />
-        <Field label="Solde actuel (€)" value={initial} onChangeText={setInitial} keyboardType="numbers-and-punctuation" placeholder="0,00" />
+        <Field label={`Solde actuel (${currencySymbol()})`} value={initial} onChangeText={setInitial} keyboardType="numbers-and-punctuation" placeholder="0,00" />
         <Button title="Créer le compte" onPress={create} />
       </Card>
 
@@ -72,13 +74,15 @@ export function AccountsScreen() {
           <Card>
             {archived.map((a) => (
               <View key={a.id} style={rowStyle}>
-                <Txt sub>{a.name}</Txt>
+                <Pressable onPress={() => setEditing(a)} style={{ flex: 1 }}><Txt sub>{a.name}</Txt></Pressable>
                 <Button title="Restaurer" variant="ghost" onPress={() => setAccountArchived(a.id, false)} />
               </View>
             ))}
           </Card>
         </>
       )}
+
+      <AccountEditor account={editing} onClose={() => setEditing(null)} />
     </Screen>
   );
 }

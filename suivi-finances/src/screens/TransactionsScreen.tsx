@@ -1,25 +1,21 @@
 import React, { useState } from 'react';
-import { Alert, View } from 'react-native';
-import { monthKey, monthSummary, type Transaction } from '../domain';
+import { View } from 'react-native';
+import { monthKey, monthSummary } from '../domain';
 import { useData } from '../state/DataContext';
 import { Card, Empty, Money, Screen, Txt, rowStyle } from '../ui/components';
 import { dayLabel } from '../ui/format';
 import { MonthNav } from '../ui/MonthNav';
+import { useUi } from '../ui/Ui';
 import { TransactionRow } from '../ui/TransactionRow';
 
 export function TransactionsScreen() {
-  const { data, today, deleteTransaction } = useData();
+  const { data, today } = useData();
+  const { openAdd } = useUi();
   const [month, setMonth] = useState(monthKey(today));
 
   const list = data.transactions.filter((tx) => monthKey(tx.date) === month);
   const days = [...new Set(list.map((tx) => tx.date))].sort().reverse();
-  const s = monthSummary(month, data.transactions, data.categories, today);
-
-  const confirmDelete = (tx: Transaction) =>
-    Alert.alert('Supprimer cette transaction ?', tx.recurrenceId ? 'Seule cette échéance sera supprimée, la planification continue.' : undefined, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: () => deleteTransaction(tx.id) },
-    ]);
+  const s = monthSummary(month, data.transactions, data.categories, today, data.allocations);
 
   return (
     <Screen>
@@ -37,12 +33,12 @@ export function TransactionsScreen() {
           </Txt>
           <Card style={{ paddingVertical: 4, opacity: day > today ? 0.7 : 1 }}>
             {list.filter((tx) => tx.date === day).map((tx, i) => (
-              <TransactionRow key={tx.id} tx={tx} divider={i > 0} onPress={() => confirmDelete(tx)} />
+              <TransactionRow key={tx.id} tx={tx} divider={i > 0} onPress={() => openAdd({ editId: tx.id })} />
             ))}
           </Card>
         </View>
       ))}
-      <Txt sub size={12} style={{ textAlign: 'center' }}>Touche une ligne pour la supprimer.</Txt>
+      <Txt sub size={12} style={{ textAlign: 'center' }}>Touche une transaction pour la modifier ou la supprimer.</Txt>
     </Screen>
   );
 }
