@@ -19,13 +19,13 @@ export function AddTransactionSheet() {
   const { addPreset, closeAdd } = useUi();
   return (
     <Modal visible={addPreset !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={closeAdd}>
-      {addPreset !== null && <Form preset={addPreset} onClose={closeAdd} />}
+      {addPreset !== null && <TransactionForm preset={addPreset} onClose={closeAdd} />}
     </Modal>
   );
 }
 
 /** Ajout d'une transaction, ou modification si `preset.editId` désigne une transaction existante. */
-function Form({ preset, onClose }: { preset: AddPreset; onClose: () => void }) {
+export function TransactionForm({ preset, onClose }: { preset: AddPreset; onClose: () => void }) {
   const { data, addTransaction, updateTransaction, deleteTransaction } = useData();
   const accounts = data.accounts.filter((a) => !a.archived);
   const existing = preset.editId ? data.transactions.find((t) => t.id === preset.editId) : undefined;

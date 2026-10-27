@@ -15,12 +15,12 @@ export function CategoryEditor({ visible, kind, category, onClose, onSaved }: {
 }) {
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      {visible && <Form kind={category?.kind ?? kind} category={category ?? null} onClose={onClose} onSaved={onSaved} />}
+      {visible && <CategoryForm kind={category?.kind ?? kind} category={category ?? null} onClose={onClose} onSaved={onSaved} />}
     </Modal>
   );
 }
 
-function Form({ kind, category, onClose, onSaved }: {
+export function CategoryForm({ kind, category, onClose, onSaved }: {
   kind: CategoryKind; category: Category | null; onClose: () => void; onSaved?: (c: Category) => void;
 }) {
   const { data, addCategory, updateCategory, setCategoryArchived } = useData();

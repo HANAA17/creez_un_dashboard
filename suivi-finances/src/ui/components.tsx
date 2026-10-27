@@ -12,7 +12,11 @@ import { useTheme } from './theme';
 export function Screen({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const t = useTheme();
   return (
-    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[styles.screen, style]} keyboardShouldPersistTaps="handled">
+    <ScrollView style={{ backgroundColor: t.bg }} contentContainerStyle={[styles.screen, style]}
+      keyboardShouldPersistTaps="handled"
+      // Le clavier décimal de l'iPhone n'a pas de touche « OK » : faire défiler ferme le clavier,
+      // et le contenu remonte au-dessus du clavier pour que les boutons restent accessibles.
+      keyboardDismissMode="on-drag" automaticallyAdjustKeyboardInsets>
       {children}
     </ScrollView>
   );

@@ -1,20 +1,12 @@
 import React, { useState } from 'react';
-import { Alert, Modal, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { envelopes, formatAmount, parseOptionalAmount, planTotal } from '../domain';
 import { useData } from '../state/DataContext';
 import { AmountRow, Button, Card, Screen, Txt, rowStyle } from '../ui/components';
 import { useCategoryLook } from '../ui/useCategory';
 
-/** Plan mensuel : la répartition habituelle à appliquer à chaque salaire. */
-export function PlanSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      {visible && <Form onClose={onClose} />}
-    </Modal>
-  );
-}
-
-function Form({ onClose }: { onClose: () => void }) {
+/** Plan mensuel : la répartition habituelle à appliquer à chaque salaire. À afficher dans une fenêtre déjà ouverte. */
+export function PlanForm({ onClose }: { onClose: () => void }) {
   const { data, savePlan } = useData();
   const look = useCategoryLook();
   const list = envelopes(data.categories);

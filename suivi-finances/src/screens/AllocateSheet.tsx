@@ -1,21 +1,13 @@
 import React, { useState } from 'react';
-import { Alert, Modal, View } from 'react-native';
+import { Alert, View } from 'react-native';
 import { envelopeBalances, envelopes, formatAmount, formatAmountShort, parseOptionalAmount, poolSummary } from '../domain';
 import { useData } from '../state/DataContext';
 import { AmountRow, Button, Card, Screen, Txt, rowStyle } from '../ui/components';
 import { useTheme } from '../ui/theme';
 import { useCategoryLook } from '../ui/useCategory';
 
-/** Répartir l'argent « À répartir » dans les enveloppes, à la main ou avec le plan mensuel. */
-export function AllocateSheet({ visible, fromPlan, onClose }: { visible: boolean; fromPlan?: boolean; onClose: () => void }) {
-  return (
-    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      {visible && <Form fromPlan={!!fromPlan} onClose={onClose} />}
-    </Modal>
-  );
-}
-
-function Form({ fromPlan, onClose }: { fromPlan: boolean; onClose: () => void }) {
+/** Répartir l'argent « À répartir » dans les enveloppes, à la main ou avec le plan mensuel. À afficher dans une fenêtre déjà ouverte. */
+export function AllocateForm({ fromPlan, onClose }: { fromPlan: boolean; onClose: () => void }) {
   const { data, env, today, allocate } = useData();
   const t = useTheme();
   const look = useCategoryLook();

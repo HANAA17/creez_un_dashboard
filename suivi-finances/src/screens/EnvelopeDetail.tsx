@@ -1,5 +1,5 @@
 import React from 'react';
-import { Alert, Modal, Pressable, View } from 'react-native';
+import { Alert, Pressable, View } from 'react-native';
 import { envelopeBalance, envelopeHistory, formatAmount, formatAmountShort, spentThisMonth, type Allocation, type EnvelopeLine } from '../domain';
 import { useData } from '../state/DataContext';
 import { Button, Card, Empty, IconBubble, Money, Screen, SectionTitle, Txt, rowStyle } from '../ui/components';
@@ -8,25 +8,9 @@ import { useTheme } from '../ui/theme';
 import { useCategoryLook } from '../ui/useCategory';
 import type { TransferPreset } from './TransferSheet';
 
-/** Détail d'une enveloppe : solde, plan, actions rapides et historique des mouvements. */
-export function EnvelopeDetail({ categoryId, onClose, onTransfer, onEditCategory, onEditTransaction }: {
-  categoryId: string | null;
-  onClose: () => void;
-  onTransfer: (preset: TransferPreset) => void;
-  onEditCategory: (id: string) => void;
-  onEditTransaction: (id: string) => void;
-}) {
-  return (
-    <Modal visible={categoryId !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      {categoryId !== null && (
-        <Body id={categoryId} onClose={onClose} onTransfer={onTransfer} onEditCategory={onEditCategory} onEditTransaction={onEditTransaction} />
-      )}
-    </Modal>
-  );
-}
-
-function Body({ id, onClose, onTransfer, onEditCategory, onEditTransaction }: {
-  id: string; onClose: () => void; onTransfer: (p: TransferPreset) => void; onEditCategory: (id: string) => void; onEditTransaction: (id: string) => void;
+/** Détail d'une enveloppe : solde, plan, actions rapides et historique. À afficher dans une fenêtre déjà ouverte. */
+export function EnvelopeDetailBody({ id, onClose, onTransfer, onEditCategory, onEditTransaction }: {
+  id: string; onClose: () => void; onTransfer: (p: TransferPreset) => void; onEditCategory: () => void; onEditTransaction: (id: string) => void;
 }) {
   const { data, env, today, deleteAllocation } = useData();
   const t = useTheme();
@@ -83,7 +67,7 @@ function Body({ id, onClose, onTransfer, onEditCategory, onEditTransaction }: {
         <View style={{ flex: 1 }}><Button title="Mettre de l'argent" onPress={() => onTransfer({ from: null, to: id, amount: balance < 0 ? -balance : undefined })} /></View>
         <View style={{ flex: 1 }}><Button title="Déplacer" variant="ghost" onPress={() => onTransfer({ from: id, to: undefined })} /></View>
       </View>
-      <Button title="Modifier ou supprimer la catégorie" variant="ghost" onPress={() => onEditCategory(id)} />
+      <Button title="Modifier ou supprimer la catégorie" variant="ghost" onPress={onEditCategory} />
 
       <SectionTitle>Mouvements</SectionTitle>
       {history.length === 0 ? <Empty>Aucun mouvement pour l'instant.</Empty> : (

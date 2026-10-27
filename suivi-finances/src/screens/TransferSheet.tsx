@@ -12,7 +12,7 @@ export interface TransferPreset { from?: string | null; to?: string | null; amou
 export function TransferSheet({ preset, onClose }: { preset: TransferPreset | null; onClose: () => void }) {
   return (
     <Modal visible={preset !== null} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
-      {preset !== null && <Form preset={preset} onClose={onClose} />}
+      {preset !== null && <TransferForm preset={preset} onClose={onClose} />}
     </Modal>
   );
 }
@@ -33,7 +33,7 @@ function Choice({ label, sub, icon, color, selected, onPress }: {
   );
 }
 
-function Form({ preset, onClose }: { preset: TransferPreset; onClose: () => void }) {
+export function TransferForm({ preset, onClose }: { preset: TransferPreset; onClose: () => void }) {
   const { data, env, today, transferBetween } = useData();
   const t = useTheme();
   const look = useCategoryLook();
